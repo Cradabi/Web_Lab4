@@ -116,11 +116,116 @@ function normalizeWeather(apiData) {
 
 // ===================== Рендер карточек ==========================
 
-// Будет реализовано в следующих коммитах.
 function renderLocationCard(location, container) {
-  void location;
-  void container;
-  throw new Error("renderLocationCard: пока не реализовано");
+  const existing = container.querySelector(
+    `[data-location-id="${location.id}"]`
+  );
+  if (existing) existing.remove();
+
+  const card = createElement("article", "location-card");
+  card.dataset.locationId = location.id;
+
+  const header = createElement("div", "location-card__header");
+  const titlesWrap = createElement("div");
+
+  const title = createElement(
+    "h3",
+    "location-card__title",
+    location.isCurrent ? "Текущее местоположение" : location.displayName
+  );
+
+  const subtitleText = location.isCurrent
+    ? "Определено по геолокации"
+    : `${location.cityName || location.displayName} • ${location.country || ""}`;
+
+  const subtitle = createElement("p", "location-card__subtitle", subtitleText);
+
+  titlesWrap.appendChild(title);
+  titlesWrap.appendChild(subtitle);
+  header.appendChild(titlesWrap);
+
+  // Кнопка удаления только для дополнительных городов
+  if (!location.isCurrent) {
+    const removeBtn = createElement(
+      "button",
+      "location-card__remove-btn",
+      "Удалить"
+    );
+    removeBtn.type = "button";
+    removeBtn.addEventListener("click", () => {
+      removeLocation(location.id);
+    });
+    header.appendChild(removeBtn);
+  }
+
+  const statusLine = createElement("div", "location-card__status");
+  statusLine.textContent = "Загрузка данных...";
+
+  const forecastList = createElement("ul", "forecast-list");
+
+  card.appendChild(header);
+  card.appendChild(statusLine);
+  card.appendChild(forecastList);
+
+  container.appendChild(card);
+
+  return { card, statusLine, forecastList };
+}
+
+function updateCardWithWeather(location, weather, container) {
+  const card = container.querySelector(`[data-location-id="${location.id}"]`);
+  if (!card) return;
+
+  const statusLine = card.querySelector(".location-card__status");
+  const list = card.querySelector(".forecast-list");
+
+  list.innerHTML = "";
+
+  if (!weather || !weather.days || weather.days.length === 0) {
+    statusLine.textContent = "Не удалось получить прогноз";
+    return;
+  }
+
+  statusLine.textContent = weather.current
+    ? `Сейчас: ${weather.current.temperature.toFixed(1)}°C, ветер ${
+        weather.current.windSpeed
+      } м/с`
+    : "Актуальные данные недоступны";
+
+  weather.days.forEach((day, index) => {
+    const li = createElement("li", "forecast-item");
+
+    const dayLabel =
+      index === 0 ? "Сегодня" : index === 1 ? "Завтра" : formatDateShort(day.date);
+
+    const dayEl = createElement("div", "forecast-item__day", dayLabel);
+    const tempEl = createElement(
+      "div",
+      "forecast-item__temp",
+      `${day.tMin.toFixed(1)}°C … ${day.tMax.toFixed(1)}°C`
+    );
+    const infoEl = createElement(
+      "div",
+      "forecast-item__info",
+      `Осадки: ${day.precipitation.toFixed(1)} мм`
+    );
+
+    li.appendChild(dayEl);
+    li.appendChild(tempEl);
+    li.appendChild(infoEl);
+    list.appendChild(li);
+  });
+}
+
+function updateCardWithError(location, errorMessage, container) {
+  const card = container.querySelector(`[data-location-id="${location.id}"]`);
+  if (!card) return;
+
+  const statusLine = card.querySelector(".location-card__status");
+  const list = card.querySelector(".forecast-list");
+
+  list.innerHTML = "";
+  statusLine.textContent = errorMessage;
 }
 
 // ===================== Управление состоянием ====================
