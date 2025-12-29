@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Прогноз погоды</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-title">Прогноз погоды</h1>
+    <button id="refreshBtn" class="btn primary-btn" type="button">
+      Обновить
+    </button>
+  </header>
+
+  <main class="app-main">
+    <section id="globalStatus" class="status-bar" aria-live="polite"></section>
+
+    <section class="city-form-section">
+      <h2 class="section-title">Добавить город</h2>
+      <form id="cityForm" autocomplete="off" novalidate>
+        <label for="cityInput" class="field-label">
+          Введите город (начните ввод, чтобы увидеть список):
+        </label>
+        <div class="autocomplete-wrapper">
+          <input
+            id="cityInput"
+            name="city"
+            type="text"
+            class="text-input"
+            placeholder="Например, Moscow"
+          />
+          <ul id="citySuggestions" class="suggestions-list"></ul>
+        </div>
+        <p id="cityError" class="field-error" aria-live="polite"></p>
+        <button type="submit" class="btn secondary-btn">
+          Добавить город
+        </button>
+      </form>
+      <p class="hint-text">
+        Можно добавить минимум два дополнительных города. Добавлять можно
+        только существующие города из списка.
+      </p>
+    </section>
+
+    <section class="cards-section">
+      <h2 class="section-title">Локации</h2>
+      <div id="cardsContainer" class="cards-container"></div>
+    </section>
+  </main>
+
+  <div id="geoModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2 class="modal-title">Геолокация недоступна</h2>
+      <p class="modal-text">
+        Невозможно получить текущее местоположение. Используйте форму
+        добавления города для просмотра прогноза.
+      </p>
+      <button id="geoModalClose" type="button" class="btn primary-btn">
+        Понятно
+      </button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
