@@ -60,12 +60,58 @@ function createElement(tag, className, text) {
 
 // ===================== Работа с API погоды ======================
 
-// Будет реализовано в следующих коммитах.
-// Open-Meteo API позволяет получать прогноз по координатам без API-ключа [web:21].
+// Open-Meteo Forecast API (без ключа): https://open-meteo.com/en/docs [web:21]
 async function fetchWeatherByCoordinates(lat, lon) {
-  void lat;
-  void lon;
-  throw new Error("fetchWeatherByCoordinates: пока не реализовано");
+  const params = new URLSearchParams({
+    latitude: lat,
+    longitude: lon,
+    daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
+    current_weather: "true",
+    timezone: "auto"
+  });
+
+  const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Ошибка HTTP: " + response.status);
+  }
+
+  const data = await response.json();
+  return normalizeWeather(data);
+}
+
+// Нормализация ответа к удобному формату
+function normalizeWeather(apiData) {
+  const result = {
+    current: null,
+    days: []
+  };
+
+  if (apiData.current_weather) {
+    result.current = {
+      temperature: apiData.current_weather.temperature,
+      windSpeed: apiData.current_weather.windspeed,
+      time: apiData.current_weather.time
+    };
+  }
+
+  const daily = apiData.daily || {};
+  const dates = daily.time || [];
+  const tMax = daily.temperature_2m_max || [];
+  const tMin = daily.temperature_2m_min || [];
+  const precip = daily.precipitation_sum || [];
+
+  for (let i = 0; i < dates.length && i < MIN_FORECAST_DAYS; i++) {
+    result.days.push({
+      date: dates[i],
+      tMax: tMax[i],
+      tMin: tMin[i],
+      precipitation: precip[i]
+    });
+  }
+
+  return result;
 }
 
 // ===================== Рендер карточек ==========================
