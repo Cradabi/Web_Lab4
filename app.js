@@ -234,6 +234,8 @@ let appState = {
   locations: [] // { id, isCurrent, lat, lon, cityName, country, displayName }
 };
 
+let isInitialLoadCompleted = false;
+
 function addLocation(location) {
   const exists = appState.locations.some((loc) => loc.id === location.id);
   if (!exists) {
@@ -256,10 +258,66 @@ async function refreshAllLocations() {
 
 // ===================== Геолокация ===============================
 
-// Будет реализовано в следующих коммитах.
-// Geolocation будет вызываться через navigator.geolocation.getCurrentPosition [web:32].
+// Geolocation API: navigator.geolocation.getCurrentPosition [web:139]
 function requestInitialGeolocation() {
-  throw new Error("requestInitialGeolocation: пока не реализовано");
+  if (!navigator.geolocation) {
+    showGeoErrorModal();
+    return;
+  }
+
+  const globalStatus = document.getElementById("globalStatus");
+  globalStatus.textContent = "Запрос текущего местоположения...";
+  globalStatus.classList.add("status-bar--loading");
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+
+      const currentLocation = {
+        id: "current-location",
+        isCurrent: true,
+        lat: latitude,
+        lon: longitude,
+        cityName: "Текущее местоположение",
+        country: "",
+        displayName: "Текущее местоположение"
+      };
+
+      addLocation(currentLocation);
+
+      refreshAllLocations().finally(() => {
+        globalStatus.classList.remove("status-bar--loading");
+        isInitialLoadCompleted = true;
+      });
+    },
+    (err) => {
+      console.warn("Ошибка геолокации:", err);
+
+      // Коды ошибок: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT [web:58]
+      globalStatus.textContent =
+        "Геолокация отключена или недоступна. Введите город вручную.";
+      globalStatus.classList.remove("status-bar--loading");
+      globalStatus.classList.add("status-bar--error");
+
+      showGeoErrorModal();
+      isInitialLoadCompleted = true;
+    },
+    {
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 0
+    }
+  );
+}
+
+function showGeoErrorModal() {
+  const modal = document.getElementById("geoModal");
+  modal.classList.remove("hidden");
+}
+
+function hideGeoErrorModal() {
+  const modal = document.getElementById("geoModal");
+  modal.classList.add("hidden");
 }
 
 // ===================== Автодополнение и форма ===================
@@ -278,10 +336,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const geoModalClose = document.getElementById("geoModalClose");
   const refreshBtn = document.getElementById("refreshBtn");
 
-  geoModalClose.addEventListener("click", () => {
-    const modal = document.getElementById("geoModal");
-    modal.classList.add("hidden");
-  });
+  geoModalClose.addEventListener("click", hideGeoErrorModal);
 
   setupCityAutocomplete();
   setupCityForm();
@@ -295,6 +350,6 @@ window.addEventListener("DOMContentLoaded", () => {
   if (saved && Array.isArray(saved.locations) && saved.locations.length > 0) {
     appState = saved;
   } else {
-    // Пока геолокацию не запрашиваем — добавим позже.
+    requestInitialGeolocation();
   }
 });
