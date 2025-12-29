@@ -252,8 +252,37 @@ function removeLocation(id) {
 }
 
 async function refreshAllLocations() {
-  void 0;
-  // Будет реализовано в следующих коммитах.
+  const globalStatus = document.getElementById("globalStatus");
+  const cardsContainer = document.getElementById("cardsContainer");
+
+  globalStatus.textContent = "Обновление прогноза...";
+  globalStatus.classList.remove("status-bar--error");
+  globalStatus.classList.add("status-bar--loading");
+
+  // Сначала рендерим карточки-скелеты
+  for (const loc of appState.locations) {
+    const { card, statusLine } = renderLocationCard(loc, cardsContainer);
+    statusLine.textContent = "Загрузка данных...";
+    card.classList.remove("error");
+  }
+
+  // Затем подгружаем данные
+  for (const loc of appState.locations) {
+    try {
+      const weather = await fetchWeatherByCoordinates(loc.lat, loc.lon);
+      updateCardWithWeather(loc, weather, cardsContainer);
+    } catch (e) {
+      console.error(e);
+      updateCardWithError(
+        loc,
+        "Ошибка при получении данных. Попробуйте обновить позже.",
+        cardsContainer
+      );
+    }
+  }
+
+  globalStatus.textContent = "Данные обновлены.";
+  globalStatus.classList.remove("status-bar--loading");
 }
 
 // ===================== Геолокация ===============================
@@ -293,7 +322,6 @@ function requestInitialGeolocation() {
     (err) => {
       console.warn("Ошибка геолокации:", err);
 
-      // Коды ошибок: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT [web:58]
       globalStatus.textContent =
         "Геолокация отключена или недоступна. Введите город вручную.";
       globalStatus.classList.remove("status-bar--loading");
@@ -333,6 +361,7 @@ function setupCityForm() {
 // ===================== Инициализация ============================
 
 window.addEventListener("DOMContentLoaded", () => {
+  const saved = loadState();
   const geoModalClose = document.getElementById("geoModalClose");
   const refreshBtn = document.getElementById("refreshBtn");
 
@@ -342,13 +371,19 @@ window.addEventListener("DOMContentLoaded", () => {
   setupCityForm();
 
   refreshBtn.addEventListener("click", () => {
-    const globalStatus = document.getElementById("globalStatus");
-    globalStatus.textContent = "Функция обновления будет добавлена позже.";
+    if (appState.locations.length === 0) {
+      const globalStatus = document.getElementById("globalStatus");
+      globalStatus.textContent = "Сначала добавьте город или разрешите геолокацию.";
+      globalStatus.classList.add("status-bar--error");
+      return;
+    }
+    refreshAllLocations();
   });
 
-  const saved = loadState();
   if (saved && Array.isArray(saved.locations) && saved.locations.length > 0) {
     appState = saved;
+    refreshAllLocations();
+    isInitialLoadCompleted = true;
   } else {
     requestInitialGeolocation();
   }
