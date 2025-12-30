@@ -1,7 +1,3 @@
-// ===================== Константы и данные =======================
-
-// Небольшой хардкод-список городов для автодополнения и валидации.
-// При желании можно заменить на внешний API городов.
 const CITY_LIST = [
   { name: "Moscow", country: "Russia", lat: 55.7558, lon: 37.6176 },
   { name: "Saint Petersburg", country: "Russia", lat: 59.9311, lon: 30.3609 },
@@ -15,13 +11,9 @@ const CITY_LIST = [
   { name: "Tokyo", country: "Japan", lat: 35.6895, lon: 139.6917 }
 ];
 
-// Ключи для localStorage
 const STORAGE_KEY = "weather_app_state_v1";
 
-// Минимальное количество дней прогноза (сегодня + 2)
 const MIN_FORECAST_DAYS = 3;
-
-// ===================== Вспомогательные функции ==================
 
 function saveState(state) {
   try {
@@ -58,9 +50,6 @@ function createElement(tag, className, text) {
   return el;
 }
 
-// ===================== Работа с API погоды ======================
-
-// Open-Meteo Forecast API (без ключа): https://open-meteo.com/en/docs [web:21]
 async function fetchWeatherByCoordinates(lat, lon) {
   const params = new URLSearchParams({
     latitude: lat,
@@ -81,7 +70,6 @@ async function fetchWeatherByCoordinates(lat, lon) {
   return normalizeWeather(data);
 }
 
-// Нормализация ответа к удобному формату
 function normalizeWeather(apiData) {
   const result = {
     current: null,
@@ -114,12 +102,8 @@ function normalizeWeather(apiData) {
   return result;
 }
 
-// ===================== Рендер карточек ==========================
-
 function renderLocationCard(location, container) {
-  const existing = container.querySelector(
-    `[data-location-id="${location.id}"]`
-  );
+  const existing = container.querySelector(`[data-location-id="${location.id}"]`);
   if (existing) existing.remove();
 
   const card = createElement("article", "location-card");
@@ -136,15 +120,15 @@ function renderLocationCard(location, container) {
 
   const subtitleText = location.isCurrent
     ? "Определено по геолокации"
-    : `${location.cityName || location.displayName} • ${location.country || ""}`;
-
+    : `${location.cityName || location.displayName} • ${
+        location.country || ""
+      }`;
   const subtitle = createElement("p", "location-card__subtitle", subtitleText);
 
   titlesWrap.appendChild(title);
   titlesWrap.appendChild(subtitle);
   header.appendChild(titlesWrap);
 
-  // Кнопка удаления только для дополнительных городов
   if (!location.isCurrent) {
     const removeBtn = createElement(
       "button",
@@ -228,10 +212,9 @@ function updateCardWithError(location, errorMessage, container) {
   statusLine.textContent = errorMessage;
 }
 
-// ===================== Управление состоянием ====================
 
 let appState = {
-  locations: [] // { id, isCurrent, lat, lon, cityName, country, displayName }
+  locations: []
 };
 
 let isInitialLoadCompleted = false;
@@ -283,9 +266,6 @@ async function refreshAllLocations() {
   globalStatus.classList.remove("status-bar--loading");
 }
 
-// ===================== Геолокация ===============================
-
-// Geolocation API: navigator.geolocation.getCurrentPosition [web:139]
 function requestInitialGeolocation() {
   if (!navigator.geolocation) {
     showGeoErrorModal();
@@ -346,7 +326,6 @@ function hideGeoErrorModal() {
   modal.classList.add("hidden");
 }
 
-// ===================== Автодополнение и валидация города =======
 
 function setupCityAutocomplete() {
   const input = document.getElementById("cityInput");
@@ -389,7 +368,7 @@ function setupCityAutocomplete() {
     suggestions.classList.add("visible");
   }
 
-  input.addEventListener("input", updateSuggestions); // input event [web:202]
+  input.addEventListener("input", updateSuggestions);
 
   document.addEventListener("click", (e) => {
     if (!suggestions.contains(e.target) && e.target !== input) {
@@ -432,7 +411,6 @@ function validateCityName(name) {
   return { ok: true, city };
 }
 
-// ===================== Форма добавления города ==================
 
 function setupCityForm() {
   const form = document.getElementById("cityForm");
@@ -466,8 +444,6 @@ function setupCityForm() {
     refreshAllLocations();
   });
 }
-
-// ===================== Инициализация ============================
 
 window.addEventListener("DOMContentLoaded", () => {
   const saved = loadState();
