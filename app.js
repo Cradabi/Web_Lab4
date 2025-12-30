@@ -348,14 +348,81 @@ function hideGeoErrorModal() {
   modal.classList.add("hidden");
 }
 
-// ===================== Автодополнение и форма ===================
+// ===================== Автодополнение и валидация города =======
 
-function setupCityAutocomplete() {
-  // Будет реализовано в следующих коммитах.
+function validateCityName(name) {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Введите название города." };
+  }
+
+  const city = CITY_LIST.find(
+    (c) => c.name.toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (!city) {
+    return {
+      ok: false,
+      error: "Такой город не найден. Выберите город из списка."
+    };
+  }
+
+  const exists = appState.locations.some(
+    (loc) =>
+      !loc.isCurrent &&
+      loc.cityName &&
+      loc.cityName.toLowerCase() === city.name.toLowerCase()
+  );
+
+  if (exists) {
+    return {
+      ok: false,
+      error: "Этот город уже добавлен."
+    };
+  }
+
+  return { ok: true, city };
 }
 
+// ===================== Форма добавления города ==================
+
 function setupCityForm() {
-  // Будет реализовано в следующих коммитах.
+  const form = document.getElementById("cityForm");
+  const input = document.getElementById("cityInput");
+  const errorEl = document.getElementById("cityError");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault(); // чтобы форма не перезагружала страницу [web:172]
+    errorEl.textContent = "";
+
+    const value = input.value;
+    const { ok, error, city } = validateCityName(value);
+
+    if (!ok) {
+      errorEl.textContent = error;
+      return;
+    }
+
+    const newLocation = {
+      id: `city-${city.name.toLowerCase()}`,
+      isCurrent: false,
+      lat: city.lat,
+      lon: city.lon,
+      cityName: city.name,
+      country: city.country,
+      displayName: city.name
+    };
+
+    addLocation(newLocation);
+    input.value = "";
+    refreshAllLocations();
+  });
+}
+
+// ===================== Автодополнение ===========================
+
+function setupCityAutocomplete() {
+  // Будет реализовано в следующем коммите.
 }
 
 // ===================== Инициализация ============================
