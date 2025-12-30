@@ -259,14 +259,12 @@ async function refreshAllLocations() {
   globalStatus.classList.remove("status-bar--error");
   globalStatus.classList.add("status-bar--loading");
 
-  // Сначала рендерим карточки-скелеты
   for (const loc of appState.locations) {
     const { card, statusLine } = renderLocationCard(loc, cardsContainer);
     statusLine.textContent = "Загрузка данных...";
     card.classList.remove("error");
   }
 
-  // Затем подгружаем данные
   for (const loc of appState.locations) {
     try {
       const weather = await fetchWeatherByCoordinates(loc.lat, loc.lon);
@@ -350,6 +348,56 @@ function hideGeoErrorModal() {
 
 // ===================== Автодополнение и валидация города =======
 
+function setupCityAutocomplete() {
+  const input = document.getElementById("cityInput");
+  const suggestions = document.getElementById("citySuggestions");
+
+  function updateSuggestions() {
+    const value = input.value.trim().toLowerCase();
+    suggestions.innerHTML = "";
+
+    if (!value) {
+      suggestions.classList.remove("visible");
+      return;
+    }
+
+    const matched = CITY_LIST.filter((city) =>
+      city.name.toLowerCase().startsWith(value)
+    );
+
+    if (matched.length === 0) {
+      suggestions.classList.remove("visible");
+      return;
+    }
+
+    matched.forEach((city) => {
+      const li = createElement("li", "suggestions-item");
+      const nameSpan = createElement("span", "", city.name);
+      const countrySmall = createElement("small", "", city.country);
+
+      li.appendChild(nameSpan);
+      li.appendChild(countrySmall);
+
+      li.addEventListener("click", () => {
+        input.value = city.name;
+        suggestions.classList.remove("visible");
+      });
+
+      suggestions.appendChild(li);
+    });
+
+    suggestions.classList.add("visible");
+  }
+
+  input.addEventListener("input", updateSuggestions); // input event [web:202]
+
+  document.addEventListener("click", (e) => {
+    if (!suggestions.contains(e.target) && e.target !== input) {
+      suggestions.classList.remove("visible");
+    }
+  });
+}
+
 function validateCityName(name) {
   const trimmed = name.trim();
   if (!trimmed) {
@@ -392,7 +440,7 @@ function setupCityForm() {
   const errorEl = document.getElementById("cityError");
 
   form.addEventListener("submit", (e) => {
-    e.preventDefault(); // чтобы форма не перезагружала страницу [web:172]
+    e.preventDefault();
     errorEl.textContent = "";
 
     const value = input.value;
@@ -417,12 +465,6 @@ function setupCityForm() {
     input.value = "";
     refreshAllLocations();
   });
-}
-
-// ===================== Автодополнение ===========================
-
-function setupCityAutocomplete() {
-  // Будет реализовано в следующем коммите.
 }
 
 // ===================== Инициализация ============================
